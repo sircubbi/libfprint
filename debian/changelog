@@ -1,10 +1,25 @@
-libfprint (1:0.9.9-0+vfs0090~b1) UNRELEASED; urgency=medium
+libfprint (1:0.9.9-0+vfs0090~d2ubuntu1) UNRELEASED; urgency=medium
+
+  * debian/control:
+    - build-depend on libgtk-3-dev
+    - install gtk example in libfprint-bin
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 25 Dec 2018 02:47:51 +0100
+
+libfprint (1:0.9.9-0+vfs0090~d2) disco; urgency=medium
+
+  * debian/control:
+    - add libssl-dev as build-dependency
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 25 Dec 2018 02:30:41 +0100
+
+libfprint (1:0.9.9-0+vfs0090~d1) disco; urgency=medium
 
   * New upstream release
   * Updated symbols file
   * Added driver for vfs0090 fingerprint reader
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 25 Dec 2018 01:39:40 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 25 Dec 2018 02:25:15 +0100
 
 libfprint (1:0.8.2-3) unstable; urgency=medium
 
