@@ -25,6 +25,10 @@
 
 #include "drivers_api.h"
 
+#ifndef ETIME
+#define ETIME ETIMEDOUT /* For kFreeBSD */
+#endif
+
 #define EP_INTR			(1 | LIBUSB_ENDPOINT_IN)
 #define EP_DATA			(2 | LIBUSB_ENDPOINT_IN)
 #define USB_RQ			0x04

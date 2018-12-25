@@ -49,6 +49,10 @@
   else if (len > 2)                                           \
     fp_dbg("%04x... (%d bytes)", buf[0] << 8 | buf[1], len)
 
+#ifndef ETIME
+#define ETIME ETIMEDOUT /* For kFreeBSD */
+#endif
+
 unsigned char elan_get_pixel(struct fpi_frame_asmbl_ctx *ctx,
 			     struct fpi_frame *frame, unsigned int x,
 			     unsigned int y)

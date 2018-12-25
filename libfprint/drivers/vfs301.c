@@ -24,6 +24,10 @@
 #include "drivers_api.h"
 #include "vfs301_proto.h"
 
+#ifndef ETIME
+#define ETIME ETIMEDOUT /* For kFreeBSD */
+#endif
+
 /************************** GENERIC STUFF *************************************/
 
 /* Submit asynchronous sleep */
