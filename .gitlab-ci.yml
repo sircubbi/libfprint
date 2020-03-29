@@ -1,39 +1,48 @@
-image: fedora:rawhide
+include:
+  - local: '.gitlab-ci/libfprint-templates.yaml'
+  - project: 'wayland/ci-templates'
+    ref: master
+    file: '/templates/fedora.yml'
+
+variables:
+  extends: .libfprint_common_variables
+  FEDORA_TAG: rawhide
+  FEDORA_VERSION: rawhide
+  FEDORA_IMAGE: "$CI_REGISTRY/libfprint/$CI_PROJECT_NAME/fedora/$FEDORA_VERSION:$FEDORA_TAG"
+  BUNDLE: "org.freedesktop.libfprint.Demo.flatpak"
+  LAST_ABI_BREAK: "056ea541ddc97f5806cffbd99a12dc87e4da3546"
+
 stages:
+  - check-source
   - build
   - test
   - flatpack
 
-variables:
-  DEPENDENCIES: libgusb-devel glib2-devel nss-devel pixman-devel systemd meson gtk-doc
-                gcc gcc-c++ glibc-devel libX11-devel libXv-devel gtk3-devel flatpak-builder
-                gobject-introspection-devel python3-cairo python3-gobject umockdev
-  BUNDLE: "org.freedesktop.libfprint.Demo.flatpak"
-  LAST_ABI_BREAK: "056ea541ddc97f5806cffbd99a12dc87e4da3546"
+image: "$FEDORA_IMAGE"
 
 .build_one_driver_template: &build_one_driver
   script:
-    - dnf update -y --nogpgcheck && dnf install -y --nogpgcheck $DEPENDENCIES
     # Build with a driver that doesn't need imaging, or nss
-    - meson -Ddrivers=$driver . _build
+    - meson --werror -Ddrivers=$driver . _build
     - ninja -C _build
     - rm -rf _build/
 
 .build_template: &build
   script:
-    - dnf update -y --nogpgcheck && dnf install -y --nogpgcheck $DEPENDENCIES
     # And build with everything
-    - meson -Ddrivers=all . _build
+    - meson --werror -Ddrivers=all . _build
     - ninja -C _build
     - ninja -C _build install
 
 .build_template: &check_abi
   script:
-    - dnf update -y --nogpgcheck && dnf install -y --nogpgcheck $DEPENDENCIES doxygen libabigail git
     - ./.ci/check-abi ${LAST_ABI_BREAK} $(git rev-parse HEAD)
 
 build:
   stage: build
+  except:
+    variables:
+      - $CI_PIPELINE_SOURCE == "schedule"
   variables:
     driver: virtual_image
   <<: *build_one_driver
@@ -42,16 +51,35 @@ build:
 
 test:
   stage: test
+  except:
+    variables:
+      - $CI_PIPELINE_SOURCE == "schedule"
   script:
-    - dnf update -y --nogpgcheck && dnf install -y --nogpgcheck $DEPENDENCIES
+    - meson --werror -Ddrivers=all -Db_coverage=true . _build
+    - ninja -C _build
+    - meson test -C _build --verbose --no-stdsplit --timeout-multiplier 3
+    - ninja -C _build coverage
+  artifacts:
+    paths:
+      - _build/meson-logs
+    expire_in: 1 week
+
+test_valgrind:
+  stage: test
+  except:
+    variables:
+      - $CI_PIPELINE_SOURCE == "schedule"
+  script:
     - meson -Ddrivers=all . _build
     - ninja -C _build
-    - meson test -C _build --verbose --no-stdsplit
+    - meson test -C _build --verbose --no-stdsplit --setup=valgrind
 
 test_indent:
-  stage: test
+  stage: check-source
+  except:
+    variables:
+      - $CI_PIPELINE_SOURCE == "schedule"
   script:
-    - dnf update -y --nogpgcheck && dnf install -y --nogpgcheck git uncrustify
     - scripts/uncrustify.sh --check
 
 .flatpak_script_template: &flatpak_script
@@ -77,7 +105,7 @@ test_indent:
     <<: *flatpak_script
     <<: *flatpak_artifacts
 
-flatpak master:
+.flatpak_master_template: &flatpak_master
     image: registry.gitlab.gnome.org/gnome/gnome-runtime-images/gnome:3.32
     stage: flatpack
     variables:
@@ -87,3 +115,31 @@ flatpak master:
         FLATPAK_MODULE: "libfprint"
         DBUS_ID: "org.freedesktop.libfprint.Demo"
     <<: *flatpak
+
+flatpak-auto master:
+    <<: *flatpak_master
+    when: always
+    only:
+      - tags
+      - master
+
+flatpak-manual master:
+    <<: *flatpak_master
+    when: manual
+    except:
+      refs:
+        - tags
+        - master
+      variables:
+        - $CI_PIPELINE_SOURCE == "schedule"
+
+# CONTAINERS creation stage
+container_fedora_build:
+  extends: .fedora@container-build
+  only:
+    variables:
+      - $CI_PIPELINE_SOURCE == "schedule" && $CRON_TASK == "BUILD_CI_IMAGES"
+  variables:
+    GIT_STRATEGY: none # no need to pull the whole tree for rebuilding the image
+    # a list of packages to install
+    FEDORA_RPMS: $LIBFPRINT_DEPENDENCIES
