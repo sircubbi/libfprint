@@ -145,7 +145,7 @@ libfprint_sources += configure_file(input: 'empty_file',
                                     output: 'drivers_definitions.h',
                                     capture: true,
                                     command: [
-                                      '/bin/echo',
+                                      'echo',
                                       drivers_struct_list
                                     ])
 
@@ -153,7 +153,7 @@ libfprint_sources += configure_file(input: 'empty_file',
                                     output: 'drivers_arrays.h',
                                     capture: true,
                                     command: [
-                                      '/bin/echo',
+                                      'echo',
                                       drivers_primitive_array + '\n\n' + drivers_img_array
                                     ])
 
